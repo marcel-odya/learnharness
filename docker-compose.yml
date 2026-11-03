@@ -1,0 +1,20 @@
+name: learnharness
+
+services:
+  learnharness:
+    image: learnharness:latest
+    build: .
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - lh-data:/data
+    environment:
+      LH_DATA_DIR: /data
+      LH_AUTH_FILE: /data/auth.json
+    env_file:
+      - path: .env.local
+        required: false
+    restart: unless-stopped
+
+volumes:
+  lh-data:
