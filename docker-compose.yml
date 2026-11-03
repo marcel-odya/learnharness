@@ -5,7 +5,9 @@ services:
     image: learnharness:latest
     build: .
     ports:
-      - "127.0.0.1:3000:3000"
+      # Published on all interfaces so other devices can reach the app.
+      # It has no auth, so keep this behind a host firewall.
+      - "0.0.0.0:3000:3000"
     volumes:
       - lh-data:/data
     environment:
