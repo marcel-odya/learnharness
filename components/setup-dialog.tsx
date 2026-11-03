@@ -448,7 +448,7 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 
 	return createPortal(
 		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80"
+			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 max-md:p-0"
 			data-testid="setup-backdrop"
 			{...backdropDismiss}
 		>
@@ -457,18 +457,18 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 				aria-modal="true"
 				aria-label="Set up your models"
 				data-testid="setup-dialog"
-				className="settings-dialog-pop flex max-h-[85vh] w-[640px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
+				className="settings-dialog-pop flex max-h-[85vh] w-[640px] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl max-md:h-dvh max-md:max-h-none max-md:w-full max-md:max-w-none max-md:rounded-none max-md:border-0"
 				onClick={(e) => e.stopPropagation()}
 			>
-				<header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-5">
-					<h2 className="font-title text-2xl tracking-tight">Set up your models</h2>
+				<header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-border px-4 pt-[env(safe-area-inset-top)] md:h-15 md:min-h-0 md:px-5 md:pt-0">
+					<h2 className="font-title text-xl tracking-tight md:text-2xl">Set up your models</h2>
 					<Hint label="Close" binding="escape" side="left">
 <button
 						type="button"
 						aria-label="Close setup"
 						data-testid="setup-close"
 						onClick={onClose}
-						className="ml-auto text-muted-foreground transition-colors hover:text-foreground"
+						className="ml-auto flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:size-auto"
 					>
 						✕
 					</button>

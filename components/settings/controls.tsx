@@ -71,7 +71,15 @@ export function SettingsRow({
 	dimmed?: boolean;
 }) {
 	return (
-		<div data-testid={testid} className={cn("flex items-center justify-between gap-4 py-1", dimmed && "opacity-40")}>
+		<div
+			data-testid={testid}
+			// Below md the control drops UNDER its label: a 360px sheet has no
+			// room for a label column and a pair of selects side by side.
+			className={cn(
+				"flex items-center justify-between gap-4 py-1 max-md:flex-col max-md:items-stretch max-md:gap-1.5",
+				dimmed && "opacity-40",
+			)}
+		>
 			<span className="min-w-0">
 				<span className="block font-prose text-(length:--lh-prose-size)">{label}</span>
 				{hint && <span className="block text-xs text-muted-foreground/70">{hint}</span>}
@@ -137,7 +145,9 @@ export function Toggle({
 			data-testid={`toggle-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
 			onClick={() => onChange(!checked)}
 			className={cn(
-				"relative h-4.5 w-8 shrink-0 rounded-full border border-border transition-colors",
+				// lh-tap-area: the track IS the painted control, so the 40×40
+				// target is a centred ::after region, not a bigger switch.
+				"lh-tap-area relative h-4.5 w-8 shrink-0 rounded-full border border-border transition-colors",
 				// Owner (2026-09-20): on is a gray track with a WHITE disc (a full-white
 				// track was too loud); off stays the muted track.
 				checked ? "bg-muted-foreground" : "bg-muted",

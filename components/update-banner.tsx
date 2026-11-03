@@ -22,7 +22,7 @@ export default function UpdateBanner() {
 	return (
 		<div
 			data-testid="update-banner"
-			className="fixed right-4 bottom-4 z-50 flex items-center gap-3 rounded-lg border border-border bg-popover px-4 py-3 shadow-lg"
+			className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-3 rounded-lg border border-border bg-popover px-4 py-3 shadow-lg max-md:left-4 max-md:right-4 max-md:gap-2"
 		>
 			<div className="text-sm">
 				<span className="font-medium">LearnHarness {ready.version ?? "update"} is ready</span>
@@ -31,7 +31,7 @@ export default function UpdateBanner() {
 			<button
 				type="button"
 				onClick={() => window.lh?.installUpdate?.()}
-				className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/80"
+				className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/80 max-md:min-h-11 max-md:shrink-0"
 			>
 				Restart
 			</button>

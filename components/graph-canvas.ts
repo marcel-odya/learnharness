@@ -866,6 +866,14 @@ export class GraphCanvasRenderer {
 		this.markDirty();
 	}
 
+	/** Button zoom (the touch toolbar): goes through d3-zoom exactly like a
+	 *  wheel tick, so constraints and the camera event fire the same way.
+	 *  Multiple of the current scale (1.35 = one comfortable step). */
+	zoomBy(factor: number): void {
+		if (!this.data || !this.data.nodes.length) return;
+		select(this.canvas).call(this.zoomBehavior.scaleBy, factor);
+	}
+
 	/** Frame the whole graph (padding included). Keeps the camera on later
 	 *  setData calls — call fit() only for an explicit re-frame (the
 	 *  first-ever open; afterwards the caller-persisted camera wins). */

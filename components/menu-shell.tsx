@@ -198,13 +198,26 @@ export function MenuShell({
 		const place = () => {
 			const el = anchor();
 			if (!el || !menuRef.current) return;
+			const vw = window.innerWidth;
 			const p = computeMenuPlacement(
 				el.getBoundingClientRect(),
-				{ width: window.innerWidth, height: window.innerHeight },
+				{ width: vw, height: window.innerHeight },
 				menuRef.current.scrollHeight,
 				preferredSide,
 				align,
 			);
+			// Width cap (mobile round): a menu's own width class may exceed a
+			// phone's viewport (w-[22rem], w-52). Cap the width to the viewport
+			// and clamp the horizontal position to the viewport on BOTH anchor
+			// edges — an anchor near the right edge would otherwise push a wide
+			// menu off the left side (the model menu at 360px did).
+			const cap = vw - 2 * EDGE;
+			p.style.maxWidth = cap;
+			const w = Math.min(menuRef.current.offsetWidth, cap);
+			const desired =
+				align === "left" ? Number(p.style.left ?? EDGE) : vw - Number(p.style.right ?? 0) - w;
+			p.style.left = Math.max(EDGE, Math.min(desired, vw - EDGE - w));
+			delete p.style.right;
 			setPlaced(p);
 		};
 		place();

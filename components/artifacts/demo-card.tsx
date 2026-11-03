@@ -195,7 +195,7 @@ function DemoFrame({
 						title="Download as HTML"
 						onClick={() => downloadFile(`${slugFilename(title)}.html`, html, "text/html")}
 						data-testid="demo-download"
-						className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						className="lh-tap-tight rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>
 						<DownloadIcon className="size-3.5" />
 					</button>

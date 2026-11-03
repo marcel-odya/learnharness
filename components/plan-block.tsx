@@ -13,6 +13,7 @@ import { layout as dagreLayout } from "dagre-d3-es/src/dagre/index.js";
 // d3's curveBasis (the exact recipe dagre-d3's own renderer uses).
 import { curveBasis, line } from "d3-shape";
 import { fitGraphView, fitZoomFor, zoomedGraphView, type Viewport } from "@/components/pan-zoom";
+import { usePinchZoom } from "@/components/use-mobile";
 import type { PlanBlockData, PlanNodeStatus, PlanTree } from "@/src/core";
 import { derivedNodeStatus, derivePlanStatuses } from "@/src/core";
 import { Hint } from "@/components/ui/hint";
@@ -841,7 +842,7 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 	const [panning, setPanning] = useState(false);
 	const dragRef = useRef<{ px: number; py: number; x: number; y: number; moved: boolean } | null>(null);
 	const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-		if (e.button !== 0) return;
+		if (pinchRef.current || e.button !== 0) return;
 		if ((e.target as HTMLElement).closest("button")) return;
 		if (atFloor) return;
 		dragRef.current = { px: e.clientX, py: e.clientY, x: view.x, y: view.y, moved: false };
@@ -851,7 +852,7 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 	};
 	const moveDrag = (e: React.PointerEvent<HTMLDivElement>) => {
 		const d = dragRef.current;
-		if (!d) return;
+		if (!d || pinchRef.current) return;
 		d.moved = true;
 		setView((v) =>
 			v.zoom <= fitZoom + 1e-9 ? v : { ...v, x: d.x + (e.clientX - d.px), y: d.y + (e.clientY - d.py) },
@@ -866,6 +867,20 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 		setPanning(false);
 		e.currentTarget.classList.remove("cursor-grabbing");
 	};
+	// Two-finger zoom (the viewport owns touch gestures; see use-mobile.ts).
+	const pinchRef = useRef(false);
+	usePinchZoom(
+		viewportRef,
+		(factor, focus) => {
+			userAdjustedRef.current = true;
+			setView((v) => zoomedGraphView(v, factor, fitZoom, focus, box, size));
+		},
+		pinchRef,
+		() => {
+			dragRef.current = null;
+			setPanning(false);
+		},
+	);
 	const stepZoom = (factor: number) => {
 		userAdjustedRef.current = true;
 		setView((v) => zoomedGraphView(v, factor, fitZoom, { x: size.w / 2, y: size.h / 2 }, box, size));
@@ -893,15 +908,17 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 			}}
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<span className="text-sm font-medium">The plan</span>
-				<span className="text-xs text-muted-foreground">live — statuses derive from your check outcomes</span>
+				<span className="shrink-0 whitespace-nowrap text-sm font-medium">The plan</span>
+				<span className="hidden min-w-0 flex-1 truncate text-xs text-muted-foreground sm:inline">
+					live — statuses derive from your check outcomes
+				</span>
 				<Hint label="Close" binding="escape" side="left">
 <button
 					type="button"
 					onClick={onClose}
 					aria-label="Close"
 					data-testid="plan-popup-close"
-					className="ml-auto rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					className="ml-auto flex size-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:size-auto md:p-1.5"
 				>
 					<XIcon className="size-4" />
 				</button>
@@ -947,14 +964,17 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 							/>
 						</div>
 						<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
-							<span className="text-xs text-muted-foreground/60">Drag to pan · scroll to zoom</span>
+							<span className="text-xs text-muted-foreground/60">
+								<span className="max-md:hidden">Drag to pan · scroll to zoom</span>
+								<span className="md:hidden">Drag to pan · pinch to zoom</span>
+							</span>
 							<div className="flex gap-1">
 								<Hint label="Zoom out" side="bottom">
 <button
 									type="button"
 									aria-label="Zoom out"
 									onClick={() => stepZoom(1 / 1.25)}
-									className="pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground"
+									className="pointer-events-auto flex size-11 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground md:size-7"
 								>
 									<MinusIcon className="size-3.5" />
 								</button>
@@ -965,7 +985,7 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 									aria-label="Fit plan to screen"
 									onClick={fitView}
 									data-testid="plan-popup-fit"
-									className="pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground"
+									className="pointer-events-auto flex size-11 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground md:size-7"
 								>
 									<MaximizeIcon className="size-3.5" />
 								</button>
@@ -975,7 +995,7 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 									type="button"
 									aria-label="Zoom in"
 									onClick={() => stepZoom(1.25)}
-									className="pointer-events-auto flex size-7 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground"
+									className="pointer-events-auto flex size-11 items-center justify-center rounded-md border border-border/70 bg-card/80 text-muted-foreground backdrop-blur transition-colors hover:bg-accent hover:text-foreground md:size-7"
 								>
 									<PlusIcon className="size-3.5" />
 								</button>

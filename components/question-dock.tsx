@@ -599,7 +599,7 @@ function QuestionDockForm({
 									data-kbdrow={i}
 									onClick={() => toggle(i)}
 									className={cn(
-										"flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none transition-colors",
+										"flex min-h-11 items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none transition-colors max-md:py-2.5",
 										isSel ? "border-primary bg-accent" : "hover:bg-accent/50",
 										i === kbdIdx && !isSel && "ring-1 ring-border bg-accent/40",
 									)}
@@ -647,7 +647,7 @@ function QuestionDockForm({
 								className={cn(
 									// Option-row layout + radio circle (owner); the dashed
 									// outline stays — this is the deliberate non-answer.
-									"flex items-start gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm outline-none transition-colors",
+									"flex min-h-11 items-start gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm outline-none transition-colors max-md:py-2.5",
 									sel.dontKnow ? "border-primary text-foreground" : "text-muted-foreground",
 									kbdIdx === optionCount && !sel.dontKnow && "ring-1 ring-border bg-accent/40",
 								)}
@@ -674,7 +674,7 @@ function QuestionDockForm({
 								data-kbdrow={optionCount}
 								onClick={selectOther}
 								className={cn(
-									"flex items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none transition-colors",
+									"flex min-h-11 items-start gap-3 rounded-lg border px-3 py-2 text-left text-sm outline-none transition-colors max-md:py-2.5",
 									sel.otherSelected ? "border-primary bg-accent" : "border-dashed hover:bg-accent/50",
 									kbdIdx === optionCount && !sel.otherSelected && "ring-1 ring-border bg-accent/40",
 								)}
@@ -811,9 +811,9 @@ function QuestionDockForm({
 								className={cn(
 									"absolute inset-0 h-4 w-full cursor-pointer appearance-none bg-transparent outline-none",
 									"[&::-webkit-slider-runnable-track]:h-4 [&::-webkit-slider-runnable-track]:bg-transparent",
-									"[&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-current",
+									"[&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-current max-md:[&::-webkit-slider-thumb]:size-6",
 									"[&::-moz-range-track]:h-4 [&::-moz-range-track]:bg-transparent",
-									"[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-current",
+									"[&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-current max-md:[&::-moz-range-thumb]:size-6",
 								)}
 							/>
 						</div>
@@ -874,7 +874,7 @@ function QuestionDockForm({
 								}
 							}}
 							placeholder="Type your answer…"
-							className="field-sizing-content lh-input max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-2 outline-none placeholder:text-muted-foreground"
+							className="field-sizing-content lh-input max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-2 outline-none placeholder:text-muted-foreground max-md:min-h-11"
 						/>
 					) : (
 						<PathInput
@@ -918,7 +918,7 @@ function QuestionDockForm({
 						<Button
 							type="submit"
 							disabled={!canSubmit || compactionRunning}
-							className="ml-auto h-9 rounded-[6px] px-3.5 text-sm font-medium"
+							className="ml-auto h-9 rounded-[6px] px-3.5 text-sm font-medium max-md:h-11"
 						>
 							Submit answer
 						</Button>

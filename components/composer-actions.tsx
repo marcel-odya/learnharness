@@ -32,7 +32,7 @@ export function NodePickerControl({ count, onOpen, onClear }: {
 				data-testid="practice-props-chip"
 				onClick={onOpen}
 				className={
-					"flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 font-ui text-xs transition-colors " +
+					"flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 font-ui text-xs transition-colors max-md:min-h-11 " +
 					(count > 0
 						? "border-border bg-card text-foreground hover:bg-accent"
 						: "border-dashed border-border/80 bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground")
@@ -46,7 +46,7 @@ export function NodePickerControl({ count, onOpen, onClear }: {
 					type="button"
 					data-testid="practice-props-clear"
 					onClick={onClear}
-					className="cursor-pointer rounded-full px-2 py-1 font-ui text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					className="cursor-pointer rounded-full px-2 py-1 font-ui text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground max-md:min-h-11 max-md:px-3"
 				>
 					Clear
 				</button>

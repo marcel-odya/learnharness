@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Source_Sans_3 } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
@@ -12,6 +12,15 @@ import UpdateBanner from "@/components/update-banner";
 // Serif (the bundled lh-cmu @font-face in globals.css — no CDN).
 const ui = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
 const prose = Source_Sans_3({ subsets: ["latin"], variable: "--font-sans3" });
+
+/* viewport-fit=cover (mobile round): lets the layout own the notch and the
+   Android gesture bar, which is what every env(safe-area-inset-*) in the app
+   assumes. Without it those insets are always 0 and the padding is dead. */
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
 	title: "Learning Harness",

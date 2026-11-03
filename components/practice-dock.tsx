@@ -90,7 +90,7 @@ export function PracticeDock({ problemCallId, input, expanded, onExpand, onSubmi
 				type="button"
 				data-testid="practice-dock-bar"
 				onClick={onExpand}
-				className="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
+				className="flex min-h-12 w-full cursor-pointer items-center gap-2 px-4 py-3 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
 			>
 				<ChevronRightIcon className="size-4 shrink-0 rotate-90" />
 				<span className="font-medium">Problem</span>
@@ -162,7 +162,7 @@ export function PracticeDock({ problemCallId, input, expanded, onExpand, onSubmi
 						data-testid="practice-send"
 						disabled={thinking.trim().length === 0 || compactionRunning}
 						onClick={() => submit()}
-						className="ml-auto h-9 rounded-[6px] px-3.5 text-sm font-medium"
+						className="ml-auto h-9 rounded-[6px] px-3.5 text-sm font-medium max-md:h-11"
 					>
 						Submit thinking
 					</Button>

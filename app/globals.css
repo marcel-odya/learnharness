@@ -598,3 +598,64 @@ body {
 	outline: 1px solid var(--border);
 	border-radius: 0.25rem;
 }
+
+/* ============================================================
+ * Touch (mobile round)
+ * ============================================================ */
+
+/* iOS zooms the page when a focused field's text is under 16px. The app's
+   prose fields are already 16px; the settings sheet's small mono fields are
+   the remaining ones, so the rule is scoped to that sheet. */
+@media (max-width: 767px) {
+	.settings-dialog input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+	.settings-dialog textarea,
+	.settings-dialog select {
+		font-size: 16px;
+	}
+}
+
+/* ── Touch hit-area floor (mobile round) ──────────────────────────────
+   Coarse pointers get a ≥40×40 target from small icon and inline
+   controls. Four shapes, because the boxes these controls live in are
+   different:
+     .lh-tap        absolute corners / free rows — the box grows, nothing
+                    else moves (the corner buttons sit over content).
+     .lh-tap-tight  in a row whose height must not change — the box grows
+                    and the vertical margin gives the height back.
+     .lh-tap-inline inline text ("Why") — the box grows and BOTH margins
+                    give the space back, so the line keeps its height.
+     .lh-tap-area   controls whose painted box IS the control (switch
+                    tracks) — only a centred ::after hit region grows.
+   Fine pointers (desktop) are untouched. */
+@media (pointer: coarse), (hover: none) {
+	.lh-tap {
+		min-width: 2.5rem;
+		min-height: 2.5rem;
+	}
+	.lh-tap-tight {
+		min-width: 2.5rem;
+		min-height: 2.5rem;
+		margin-block: -0.5rem;
+	}
+	.lh-tap-inline {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 2.5rem;
+		min-height: 2.5rem;
+		margin: -0.75rem -0.625rem;
+		vertical-align: middle;
+	}
+	.lh-tap-area {
+		position: relative;
+	}
+	.lh-tap-area::after {
+		content: "";
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		width: max(100%, 2.5rem);
+		height: max(100%, 2.5rem);
+		transform: translate(-50%, -50%);
+	}
+}

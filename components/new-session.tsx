@@ -6,7 +6,8 @@ import { Conversation, ConversationContent, ConversationEmptyState } from "@/com
 import { Composer } from "@/components/composer";
 import { DictationBar, joinDictation, useDictation } from "@/components/dictation";
 import { useFieldCycle } from "@/components/field-cycle";
-import { SidebarToggle } from "@/components/sidebar";
+import { MobileHeader, SidebarToggle } from "@/components/sidebar";
+import { useKeyboardInset } from "@/components/use-mobile";
 import { SetupDialog } from "@/components/setup-dialog";
 import { useModelSetup, selectedModelUnavailable, openModelPicker, ZeroKeysPill } from "@/components/setup-cta";
 import { StatsBar } from "@/components/stats-bar";
@@ -32,7 +33,7 @@ export type DraftPick = { id: string; name: string; statement: string };
  * server-side (per-session models, owner 2026-09-28).
  */
 
-const DOCK = "mx-auto w-full max-w-[46rem] px-4";
+const DOCK = "mx-auto w-full max-w-[46rem] px-3 sm:px-4";
 
 /**
  * Create, safely hand over the full opening text, then return a short
@@ -117,6 +118,8 @@ export function DraftShell({
 		Array.from(document.querySelectorAll<HTMLElement>('[data-testid="composer"] [data-file-path-input]')),
 		[]);
 	useFieldCycle(cycleComposer);
+	// The soft keyboard never covers the composer (see use-mobile.ts).
+	const kbInset = useKeyboardInset();
 	const dictation = useDictation({
 		append: (t) => onChange(joinDictation(text, t)),
 	});
@@ -166,7 +169,7 @@ export function DraftShell({
 					{/* The pointer-events pattern (953b22b): the sticky wrapper is
 					    pointer-events-none so nothing here blocks the empty-state
 					    area; the blob and the stats row re-enable it themselves. */}
-					<div className="pointer-events-none sticky bottom-0 mt-auto w-full">
+					<div className="pointer-events-none sticky bottom-0 mt-auto w-full" style={{ bottom: kbInset }}>
 						<Conversation className="h-full min-w-0 flex-1" initial="instant">
 							<ConversationContent className="min-h-full gap-0 p-0">
 								<ConversationEmptyState
@@ -180,7 +183,7 @@ export function DraftShell({
 							</ConversationContent>
 						</Conversation>
 						<div className="h-24 bg-gradient-to-t from-background via-background/85 to-transparent" />
-						<div className="bg-background pb-4">
+						<div className="bg-background pb-[max(1.5rem,env(safe-area-inset-bottom))]">
 							<div className={DOCK}>
 								<ComposerActions
 									picker={(picks.length > 0 || mode === "practice") && (
@@ -220,11 +223,12 @@ export function DraftShell({
 			{/* The floating reopen toggle — pointer-events-none except the
 			    toggle itself (home's pattern), painted AFTER the overlay's
 			    column so nothing of it blocks the canvas area. */}
-			<header className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 px-3 py-2">
+			<header className="pointer-events-none absolute inset-x-0 top-0 hidden items-center gap-2 px-3 py-2 md:flex">
 				<div className="pointer-events-auto">
 					<SidebarToggle />
 				</div>
 			</header>
+			<MobileHeader />
 		</div>
 	);
 }
@@ -364,7 +368,7 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 								type="button"
 								data-testid="setup-cta"
 								onClick={() => setSetupOpen(true)}
-								className="rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
+								className="rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 hover:bg-accent cursor-pointer max-md:min-h-11 max-md:px-4"
 							>
 								Set up your models
 							</button>

@@ -58,8 +58,13 @@ export function syncDockHeight(elements: DockHeightElements, expanded: boolean) 
 	const height = (el: HTMLElement) => el.getBoundingClientRect().height;
 	const shellStyle = getComputedStyle(shell);
 	const questionStyle = question ? getComputedStyle(question) : null;
+	// Phones: the dock may grow to 70% of the transcript's height, never the
+	// whole screen — the lesson stays visible above it (mobile round).
+	const columnHeight = typeof window !== "undefined" && window.innerWidth < 768
+		? Math.max(Math.round(column.clientHeight * 0.7), 160)
+		: column.clientHeight;
 	const budget = dockHeightBudget({
-		columnHeight: column.clientHeight,
+		columnHeight,
 		outsideHeight: Math.max(height(block) - height(viewport), 0),
 		beforeShellHeight: Math.max(height(body) - height(shell), 0),
 		shellBorderHeight: pixels(shellStyle.borderTopWidth) + pixels(shellStyle.borderBottomWidth),

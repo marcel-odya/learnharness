@@ -66,7 +66,7 @@
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { NotesImportControl, NotesImportErrors, NotesImportNotices, useNotesImport } from "@/components/notes-import.tsx";
 import Link from "next/link";
-import { FileTextIcon, ListTreeIcon, Loader2Icon, SearchIcon, SettingsIcon, WaypointsIcon } from "lucide-react";
+import { EllipsisIcon, FileTextIcon, ListTreeIcon, Loader2Icon, MaximizeIcon, MinusIcon, PlusIcon, SearchIcon, SettingsIcon, UploadIcon, WaypointsIcon, XIcon } from "lucide-react";
 import { incrementalLayout, propositionSessionHref, type GraphCostSummary, type GraphNode, type GraphSnapshot } from "@/src/core";
 import { planCostLabel } from "@/components/usage-format";
 import { GraphCanvasRenderer, type GraphRenderSettings } from "./graph-canvas.ts";
@@ -356,7 +356,7 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 				type="button"
 				aria-expanded={open}
 				onClick={() => setOpen((o) => !o)}
-				className={`rounded-lg px-2 py-1 text-xs tabular-nums transition-colors hover:bg-accent ${
+				className={`rounded-lg px-2 py-1 text-xs tabular-nums transition-colors hover:bg-accent max-md:min-h-9 ${
 					open ? "text-foreground" : "text-muted-foreground hover:text-foreground"
 				}`}
 			>
@@ -470,9 +470,10 @@ function GraphSettingsControl({
 			>
 				<button
 				type="button"
+				aria-label="Graph display settings"
 				aria-expanded={open}
 				onClick={() => setOpen((o) => !o)}
-				className={`flex size-9 items-center justify-center rounded-xl border bg-card/85 shadow-lg backdrop-blur transition-colors hover:bg-accent ${
+				className={`flex size-9 items-center justify-center rounded-xl border bg-card/85 shadow-lg backdrop-blur transition-colors hover:bg-accent max-md:size-10 ${
 					open ? "text-foreground" : "text-muted-foreground hover:text-foreground"
 				}`}
 			>
@@ -1094,6 +1095,7 @@ export function GraphView({
 	// prevent — a chunk's row leaving IS its merge landing).
 	const [pipelineRuns, setPipelineRuns] = useState<{ id: string; chatId: string; title: string; phase: string; startedAt: number }[]>([]);
 	const rowIdsRef = useRef<Set<string>>(new Set());
+	const mobileFileInputRef = useRef<HTMLInputElement>(null);
 	const readPipelineStatus = useCallback(() => {
 		fetch("/api/graph/status")
 			.then((res) => res.json() as Promise<{ runs: typeof pipelineRuns }>)
@@ -1209,7 +1211,7 @@ export function GraphView({
 	// canvas container — MenuShell's placement machine measures it like
 	// any element. Camera moves close the menu (it would float stale);
 	// the dismissal contract is the sidebar's (wave 6).
-	const [ctxNode, setCtxNode] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
+	const [ctxNode, setCtxNode] = useState<{ id: string; name: string; x: number; y: number; fromButton?: boolean } | null>(null);
 	const ctxAnchorRef = useRef<HTMLDivElement | null>(null);
 	const [deletingNode, setDeletingNode] = useState<{ id: string; name: string } | null>(null);
 	useEffect(() => {
@@ -1499,9 +1501,14 @@ export function GraphView({
 			    the contract). */}
 			{ctxNode !== null && (
 				<MenuShell
-					anchorRef={ctxAnchorRef}
+					// Two anchors, one menu: the pointer (right-click / long-press
+					// positions) or the sheet's visible ⋯ button — the sheet is
+					// where a phone reaches node actions without a right-click.
+					{...(ctxNode.fromButton
+						? { anchorTestid: "node-sheet-more" }
+						: { anchorRef: ctxAnchorRef })}
 					testid="node-context-menu"
-					preferredSide="down"
+					preferredSide={ctxNode.fromButton ? "up" : "down"}
 					menuClass="flex w-fit flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
 				>
 					<button
@@ -1511,7 +1518,7 @@ export function GraphView({
 							setDeletingNode({ id: ctxNode.id, name: ctxNode.name });
 							setCtxNode(null);
 						}}
-						className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
+						className="flex min-h-11 items-center rounded-lg px-3 py-2 text-left text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground md:min-h-0 md:px-2.5 md:py-1.5"
 					>
 						Delete
 					</button>
@@ -1563,7 +1570,102 @@ export function GraphView({
 			    against the full-bleed parent) — the row NEVER wraps (owner
 			    rejected the two-row fold); in narrow windows the search is
 			    the flexible element and shrinks instead. */}
-			<div className="lh-no-drag lh-wco-floating absolute right-2 top-2 z-10 flex max-w-[calc(100%-5.5rem)] flex-col items-end gap-2">
+			{/* MOBILE CHROME (below md): the four controls as one thumb-row
+			    under the compact header — search (full width), chains, import,
+			    display settings — with the cost number and the no-match note
+			    beneath. The desktop column above keeps its exact geometry. */}
+			<div className="lh-no-drag absolute inset-x-2 top-[calc(3.25rem+env(safe-area-inset-top))] z-10 flex flex-col items-end gap-1.5 md:hidden">
+				<div className="flex w-full items-center gap-1.5">
+					{!isEmpty && (
+						<div className="relative min-w-0 flex-1 rounded-xl border bg-card/85 shadow-lg backdrop-blur">
+							<SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+							<input
+								value={query}
+								onChange={(e) => setQuery(e.target.value)}
+								placeholder="Search nodes…"
+								aria-label="Search nodes"
+								spellCheck={false}
+								className="h-10 w-full rounded-xl bg-transparent pl-9 pr-3 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
+							/>
+						</div>
+					)}
+					{!isEmpty && (
+						<button
+							type="button"
+							onClick={() => setChainsOpen(true)}
+							aria-label="Chains"
+							data-testid="open-chain-table-mobile"
+							className="flex size-10 shrink-0 items-center justify-center rounded-xl border bg-card/85 text-muted-foreground shadow-lg backdrop-blur transition-colors active:bg-accent"
+						>
+							<ListTreeIcon className="size-4" />
+						</button>
+					)}
+					<button
+						type="button"
+						disabled={importing}
+						onClick={() => mobileFileInputRef.current?.click()}
+						aria-label="Import notes"
+						data-testid="import-notes-mobile"
+						className="flex size-10 shrink-0 items-center justify-center rounded-xl border bg-card/85 text-muted-foreground shadow-lg backdrop-blur transition-colors active:bg-accent disabled:opacity-50"
+					>
+						<UploadIcon className="size-4" />
+					</button>
+					<input
+						ref={mobileFileInputRef}
+						type="file"
+						multiple
+						accept=".md,.markdown,.txt"
+						className="hidden"
+						onChange={(e) => {
+							onImportFiles(e.target.files);
+							e.target.value = ""; // allow re-picking the same file
+						}}
+					/>
+					{!isEmpty && <GraphSettingsControl settings={settings} changeSettings={changeSettings} />}
+				</div>
+				{snapshot !== null && visibleIds.size === 0 && query.trim() !== "" && (
+					<div className="rounded-md bg-card/85 px-2 py-1 text-[11px] text-muted-foreground backdrop-blur">
+						No matching nodes.
+					</div>
+				)}
+				{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
+			</div>
+
+			{/* Zoom, on touch only (pinch works too): 44px buttons because
+			    there is no wheel to fall back on. Sits above the composer. */}
+			{!isEmpty && (
+				<div className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1.5 md:hidden">
+					<button
+						type="button"
+						aria-label="Zoom in"
+						data-testid="graph-zoom-in"
+						onClick={() => rendererRef.current?.zoomBy(1.35)}
+						className="flex size-11 items-center justify-center rounded-xl border bg-card/85 text-muted-foreground shadow-lg backdrop-blur transition-colors active:bg-accent"
+					>
+						<PlusIcon className="size-4" />
+					</button>
+					<button
+						type="button"
+						aria-label="Fit graph to screen"
+						data-testid="graph-zoom-fit"
+						onClick={() => rendererRef.current?.fit()}
+						className="flex size-11 items-center justify-center rounded-xl border bg-card/85 text-muted-foreground shadow-lg backdrop-blur transition-colors active:bg-accent"
+					>
+						<MaximizeIcon className="size-4" />
+					</button>
+					<button
+						type="button"
+						aria-label="Zoom out"
+						data-testid="graph-zoom-out"
+						onClick={() => rendererRef.current?.zoomBy(1 / 1.35)}
+						className="flex size-11 items-center justify-center rounded-xl border bg-card/85 text-muted-foreground shadow-lg backdrop-blur transition-colors active:bg-accent"
+					>
+						<MinusIcon className="size-4" />
+					</button>
+				</div>
+			)}
+
+			<div className="lh-no-drag lh-wco-floating absolute right-2 top-2 z-10 flex max-w-[calc(100%-5.5rem)] flex-col items-end gap-2 max-md:hidden">
 			{/* z-20 (2026-09-20): the row paints above the cost number below
 			    it — without this, the later-in-DOM cost control layered over
 			    the settings/coverage dropdowns (owner report), still hoverable
@@ -1618,8 +1720,34 @@ export function GraphView({
 					// lh-no-drag: the card is placed anywhere on the canvas —
 					// when it lands in the top strip it must stay interactive
 					// over home.tsx's drag surface (2026-09-17).
-					className="lh-no-drag absolute z-10 w-80 max-w-[calc(100%-1rem)] rounded-xl border bg-card p-4 text-left shadow-lg"
+					className="lh-no-drag absolute z-10 w-80 max-w-[calc(100%-1rem)] rounded-xl border bg-card p-4 text-left shadow-lg max-md:inset-x-0! max-md:bottom-0! max-md:top-auto! max-md:w-full! max-md:max-w-none! max-md:max-h-[70dvh] max-md:overflow-y-auto max-md:rounded-b-none max-md:rounded-t-2xl max-md:pb-[max(1.5rem,env(safe-area-inset-bottom))]"
 				>
+					{/* Below md the card is a BOTTOM SHEET: the canvas keeps the
+					    top of the screen, the node's words get the thumb reach,
+					    and the two node actions become visible buttons (a phone
+					    has no right-click). */}
+					<div className="mb-2 flex items-center justify-end gap-1 md:hidden">
+						<button
+							type="button"
+							data-testid="node-sheet-more"
+							aria-label="Node actions"
+							onClick={() =>
+								setCtxNode({ id: selected.node.id, name: selected.node.name, x: 0, y: 0, fromButton: true })
+							}
+							className="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-accent"
+						>
+							<EllipsisIcon className="size-5" />
+						</button>
+						<button
+							type="button"
+							data-testid="node-sheet-close"
+							aria-label="Close node details"
+							onClick={() => setSelected(null)}
+							className="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-accent"
+						>
+							<XIcon className="size-4" />
+						</button>
+					</div>
 					<div className="text-sm font-medium leading-snug">{selected.node.name}</div>
 					<div className="mt-1 text-xs leading-relaxed text-muted-foreground">{selected.node.statement}</div>
 					{selected.sourceIds.length > 0 ? (

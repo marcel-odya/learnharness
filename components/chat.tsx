@@ -33,6 +33,7 @@ import { forwardDockWheel, useDockHeight } from "@/components/dock-height";
 import { QueuedSteersBody, type QueuedSteerLine } from "@/components/queued-steers";
 import { DictationBar, finishDictation, joinDictation, useDictation } from "@/components/dictation";
 import { useFieldCycle } from "@/components/field-cycle";
+import { useKeyboardInset } from "@/components/use-mobile";
 import { JobsContext } from "@/components/jobs-context";
 import { StatsBar } from "@/components/stats-bar";
 import { useServerEvent, useServerResync } from "@/components/server-events";
@@ -94,8 +95,8 @@ import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/components/th
  * deliberately narrower (~46rem centered) per the reference. Same ELEMENT,
  * same place — width polish only.
  */
-const COLUMN = "mx-auto w-full max-w-none px-6";
-const DOCK = "mx-auto w-full max-w-[46rem] px-4";
+const COLUMN = "mx-auto w-full max-w-none px-4 md:px-6";
+const DOCK = "mx-auto w-full max-w-[46rem] px-3 sm:px-4";
 // The DOCK container's fixed width (46rem) and the plan marginalia's
 // geometry (owner, plan-placement round): the bare diagram sits in the
 // dock band's RIGHT flank — MARGIN_GAP from the DOCK container's edge and
@@ -1322,7 +1323,7 @@ export function Chat({
 								spellCheck={false}
 								aria-label="Session title"
 								title="Rename this session"
-								className="lh-no-drag min-w-[8ch] max-w-[70%] shrink-0 bg-transparent font-title text-3xl tracking-tight caret-current outline-none [field-sizing:content]"
+								className="lh-no-drag min-w-[8ch] max-w-[70%] shrink-0 bg-transparent font-title text-xl tracking-tight caret-current outline-none [field-sizing:content] md:text-3xl"
 							/>
 							{/* flex-1 spacer during rename too, so the chips stay at
 							    the right edge; clicks here commit via the header
@@ -1343,7 +1344,7 @@ export function Chat({
 								setTitleDraft(titleText);
 								setRenaming(true);
 							}}
-							className="lh-no-drag -mx-1.5 min-w-4 shrink cursor-text truncate rounded-md px-1.5 text-left font-title text-3xl tracking-tight transition-colors hover:bg-accent"
+							className="lh-no-drag -mx-1.5 min-w-4 shrink cursor-text truncate rounded-md px-1.5 text-left font-title text-xl tracking-tight transition-colors hover:bg-accent md:text-3xl"
 						>
 							{titleText}
 							</button>
@@ -1365,7 +1366,7 @@ export function Chat({
 								blurAfterPointerClick(e);
 								setPlanOpen(true);
 							}}
-							className="lh-no-drag flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/80 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+							className="lh-no-drag flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/80 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:border-border hover:text-foreground max-md:min-h-9 max-md:px-2.5"
 						>
 							<WaypointsIcon className="size-3.5 text-primary" aria-hidden />
 							Plan
@@ -2089,6 +2090,11 @@ function DockOverlay({
 			? `practice:${practice.toolCallId}`
 			: "chat";
 
+	// The soft keyboard (mobile round): the dock is an overlay pinned to the
+	// layout viewport's bottom, which iOS does not shrink — lift it by the
+	// visual viewport's own overlap instead (0 everywhere else).
+	const kbInset = useKeyboardInset();
+
 	// The plan marginalia's flank width (owner, plan-placement round): from
 	// the DOCK container's right edge to the block's right edge — the bare
 	// diagram's canvas. Tracked LIVE by a ResizeObserver on the block
@@ -2350,9 +2356,9 @@ function DockOverlay({
 	});
 
 	return (
-		<div className="pointer-events-none absolute inset-x-0 bottom-0" style={{ right: sbInset }}>
+		<div className="pointer-events-none absolute inset-x-0 bottom-0" style={{ right: sbInset, bottom: kbInset }}>
 			<div className="h-24 bg-gradient-to-t from-background via-background/85 to-transparent" />
-			<div ref={blockRef} className="relative bg-background pb-5">
+			<div ref={blockRef} className="relative bg-background pb-[max(1.5rem,env(safe-area-inset-bottom))]">
 				<div className={DOCK}>
 					<div ref={viewportRef} data-dock-viewport="" className="pointer-events-auto">
 					<div ref={bodyRef}>
@@ -2470,7 +2476,7 @@ function DockOverlay({
 						data-testid="plan-marginalia"
 						onClick={onOpenPlan}
 						style={{ left: `calc(50% + ${DOCK_W / 2 + MARGIN_GAP}px)` }}
-						className={`absolute bottom-5 right-4 top-0 cursor-pointer transition-[filter,opacity] duration-300 ease-out ${
+						className={`absolute bottom-5 right-4 top-0 hidden cursor-pointer transition-[filter,opacity] duration-300 ease-out lg:block ${
 							expanded && flankW >= MARGIN_MIN_W
 								? "pointer-events-auto opacity-100 blur-0"
 								: "pointer-events-none opacity-0 blur-md"

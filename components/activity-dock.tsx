@@ -405,7 +405,7 @@ function ActivityBlobRow({
 	return (
 		<div
 			data-testid={`activity-blob-${blob.process}`}
-			className="relative rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-accent"
+			className="relative rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-accent max-md:min-h-11"
 		>
 			<button
 				type="button"
@@ -439,7 +439,7 @@ function ActivityBlobRow({
 				disabled={abortState !== undefined}
 				title={abortState === "failed" ? "Abort failed — try again" : "End this background process"}
 				aria-label={`End ${label} in ${blob.title}`}
-				className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+				className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 max-md:size-9 max-md:p-0"
 			>
 				<SquareIcon className="size-3" />
 			</button>

@@ -119,7 +119,7 @@ function SettingsDialog({
 	// backdrop click closes, the dialog body stops propagation.
 	return createPortal(
 		<div
-			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80"
+			className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 max-md:p-0"
 			data-testid="settings-backdrop"
 			{...backdropDismiss}
 		>
@@ -267,12 +267,14 @@ export function SettingsDialogBody({
 			aria-modal="true"
 			aria-label="Settings"
 			data-testid="settings-dialog"
-			className="settings-dialog-pop flex h-[620px] max-h-[85vh] w-[920px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
+			// Below md: a full-screen sheet (100dvh, notch + home-indicator
+			// insets); md and up: the 920×620 centred dialog, pixel-identical.
+			className="settings-dialog settings-dialog-pop flex h-dvh max-h-none w-full max-w-none flex-col overflow-hidden border-0 bg-card shadow-xl md:h-[620px] md:max-h-[85vh] md:w-[920px] md:max-w-[90vw] md:rounded-md md:border md:border-border"
 			onClick={(e) => e.stopPropagation()}
 		>
 			{/* Header — the app's quiet CMU title language. */}
-			<header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-5">
-				<h2 className="font-title text-2xl tracking-tight">Settings</h2>
+			<header className="flex min-h-14 shrink-0 items-center gap-3 border-b border-border px-4 pt-[env(safe-area-inset-top)] md:h-15 md:min-h-0 md:px-5 md:pt-0">
+				<h2 className="font-title text-xl tracking-tight md:text-2xl">Settings</h2>
 				<Hint
 						// Esc closes the dialog (its own listener) — surface it.
 						label="Close"
@@ -283,7 +285,7 @@ export function SettingsDialogBody({
 					type="button"
 					aria-label="Close settings"
 					data-testid="settings-close"
-					className="ml-auto size-7 rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+					className="ml-auto size-7 rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground max-md:size-11"
 					onClick={onClose}
 				>
 					<svg
@@ -299,13 +301,17 @@ export function SettingsDialogBody({
 					</Hint>
 			</header>
 
-			<div className="flex min-h-0 flex-1">
+			<div className="flex min-h-0 flex-1 max-md:flex-col">
 				{/* Left nav — text-only, the session-list mono language,
 					    active = bg-accent. */}
 				<nav
 					aria-label="Settings sections"
 					data-testid="settings-nav"
-					className="flex w-44 shrink-0 flex-col gap-1 border-r border-border p-2"
+					// Below md the left rail becomes a 3-column tab grid — all six
+					// sections visible on two rows, nothing hidden behind a
+					// horizontal scroll (a 412px phone held ~476px of tabs). md and
+					// up it stays the 176px column.
+					className="flex w-44 shrink-0 flex-col gap-1 border-r border-border p-2 max-md:grid max-md:w-full max-md:grid-cols-3 max-md:gap-0.5 max-md:border-b max-md:border-r-0 max-md:p-1.5"
 				>
 					{SECTIONS.map((s) => (
 						<button
@@ -313,7 +319,7 @@ export function SettingsDialogBody({
 							type="button"
 							data-testid={`settings-nav-${s.id}`}
 							aria-current={active === s.id}
-							className={`rounded-sm px-3 py-1.5 text-left font-ui text-sm transition-colors ${
+							className={`rounded-sm px-3 py-1.5 text-left font-ui text-sm transition-colors max-md:min-h-11 max-md:px-2 max-md:py-2.5 max-md:text-center max-md:whitespace-nowrap ${
 								active === s.id
 									? "bg-accent text-foreground"
 									: "text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -333,7 +339,7 @@ export function SettingsDialogBody({
 				    nothing may shift when the lock engages. */}
 				<div
 					ref={contentRef}
-					className="min-w-0 flex-1 overflow-y-auto"
+					className="min-w-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
 					data-testid="settings-content"
 				>
 					{error && (

@@ -10,7 +10,8 @@ import { ComposerActions, NodePickerControl } from "@/components/composer-action
 import { useModelSetup, selectedModelUnavailable, openModelPicker, ZeroKeysPill } from "@/components/setup-cta";
 import { DictationBar, joinDictation, useDictation } from "@/components/dictation";
 import { useFieldCycle } from "@/components/field-cycle";
-import { SidebarToggle } from "@/components/sidebar";
+import { MobileHeader, SidebarToggle } from "@/components/sidebar";
+import { useKeyboardInset } from "@/components/use-mobile";
 import { StatsBar } from "@/components/stats-bar";
 import { OPENING_PROMPT_FAILURE } from "@/components/opening-prompt";
 import { PathInput } from "@/components/path-input";
@@ -34,6 +35,8 @@ export function Home({
 	rendering?: boolean;
 }) {
 	const router = useRouter();
+	// The soft keyboard must never sit over the one input this screen has.
+	const kbInset = useKeyboardInset();
 	const [topic, setTopic] = useState("");
 	/* The topic MIRROR ("nothing gets lost" round, 2026-10-01 — same
 	 * mechanics as the chat composer, owner's consistency ruling): a
@@ -199,18 +202,21 @@ export function Home({
 			    no app-region of its own: the strip's drag comes from the mask
 			    div above, and the toggle's lh-no-drag subtracts from it (it is
 			    later in the tree, so the subtraction sticks). */}
-			<header className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 px-3 py-2">
+			<header className="pointer-events-none absolute inset-x-0 top-0 hidden items-center gap-2 px-3 py-2 md:flex">
 				<div className="pointer-events-auto">
 					<SidebarToggle />
 				</div>
 			</header>
+			{/* Below md: the compact header — menu, the view's name, nothing
+			    else (the graph's own controls sit under it, in thumb reach). */}
+			<MobileHeader title="Knowledge graph" />
 
 			{/* New session — same floating blob as the chat composer, docked
 			    OVER the graph (no gradient: the graph runs clean under it to the
 			    bottom edge). Matches chat.tsx's DOCK geometry (max-w-[46rem]
 			    px-4) so nothing shifts when a session starts (owner). */}
-			<div className="pointer-events-none absolute inset-x-0 bottom-0 pb-5">
-				<div className="pointer-events-auto mx-auto w-full max-w-[46rem] px-4">
+			<div className="pointer-events-none absolute inset-x-0 bottom-0 pb-[max(1.5rem,env(safe-area-inset-bottom))]" style={{ bottom: kbInset }}>
+				<div className="pointer-events-auto mx-auto w-full max-w-[46rem] px-3 sm:px-4">
 					{/* The pick bar (owner vision, 2026-10-04): the chain
 					    table's selection is PERSISTENT — picked
 					    propositions show here as a count + Clear in EITHER
@@ -234,7 +240,7 @@ export function Home({
 									type="button"
 									data-testid="setup-cta"
 									onClick={() => setSetupOpen(true)}
-									className="rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
+									className="rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 hover:bg-accent cursor-pointer max-md:min-h-11 max-md:px-4"
 								>
 									Set up your models
 								</button>
@@ -274,7 +280,7 @@ export function Home({
 						}}
 						placeholder={mode === "practice" ? "What do you want to practice?" : "What do you want to learn?"}
 						autoFocus
-						className="field-sizing-content lh-input max-h-48 min-h-10 flex-1 resize-none bg-transparent px-2.5 py-2 outline-none placeholder:text-muted-foreground"
+						className="field-sizing-content lh-input max-h-48 min-h-10 flex-1 resize-none bg-transparent px-2.5 py-2 outline-none placeholder:text-muted-foreground max-md:min-h-11"
 					/>
 					{/* No tooltip on the start square — the ↵ glyph is the
 					    affordance (owner, subtlety round 2026-09-25). */}
@@ -282,7 +288,7 @@ export function Home({
 						type="submit"
 						aria-label="Start session"
 						disabled={(!topic.trim() && !dictation.active) || busy}
-						className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-40"
+						className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-40 max-md:size-11"
 					>
 						<CornerDownLeftIcon className="size-5" />
 					</button>
@@ -303,7 +309,7 @@ export function Home({
 										data-testid={`home-mode-${m}`}
 										onClick={() => setMode(m)}
 										className={
-											"flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] uppercase tracking-wider transition-colors " +
+											"flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] uppercase tracking-wider transition-colors max-md:min-h-9 max-md:px-2.5 " +
 											(mode === m
 												? "bg-accent text-foreground"
 												: "text-muted-foreground hover:text-foreground")

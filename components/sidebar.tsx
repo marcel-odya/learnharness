@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { MenuShell } from "@/components/menu-shell";
 import { DeleteSessionDialog } from "@/components/delete-session-dialog";
 import type { ChatDeleteMode } from "@/src/core";
-import { DumbbellIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
+import { DumbbellIcon, MenuIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, PlusIcon, SearchIcon, SettingsIcon } from "lucide-react";
 import { ActivitySection } from "@/components/activity-dock";
 import { CoverageMenuBlock } from "@/components/extraction-coverage";
 import { LhMark } from "@/components/lh-mark";
@@ -21,6 +21,7 @@ import { fuzzyScore } from "@/src/core";
 import { useServerEvent, useServerResync } from "@/components/server-events";
 import type { ChatListItem } from "@/src/core";
 import { kbdEventForAction } from "@/src/core";
+import { useMediaQuery } from "@/components/use-mobile";
 import { notifySettingsSaved } from "@/components/settings-signal";
 
 /**
@@ -84,9 +85,25 @@ declare global {
 	}
 }
 
-const SidebarContext = createContext<{ open: boolean; toggle: () => void }>({
+/* BELOW md the sidebar is an OVERLAY DRAWER, not a column (mobile round):
+   fixed, off-canvas, dimmed backdrop, closed on backdrop/Esc/route change,
+   body scroll locked while open. The desktop preference (STORAGE_KEY) is
+   untouched by drawer opens — a phone visit must not rewrite what the
+   desktop remembers. Tailwind's md breakpoint (768px) is the line; the
+   matchMedia probe exists only because the drawer needs state (see
+   use-mobile.ts). */
+const MOBILE_QUERY = "(max-width: 767px)";
+
+const SidebarContext = createContext<{
+	open: boolean;
+	toggle: () => void;
+	close: () => void;
+	isMobile: boolean;
+}>({
 	open: false,
 	toggle: () => {},
+	close: () => {},
+	isMobile: false,
 });
 
 export function useSidebar() {
@@ -106,6 +123,10 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const [narrow, setNarrow] = useState(false);
 	const [mounted, setMounted] = useState(false);
+	// The drawer's own state: a phone never inherits the desktop "open"
+	// preference (a drawer covering the page on arrival is not a preference).
+	const [drawer, setDrawer] = useState(false);
+	const isMobile = useMediaQuery(MOBILE_QUERY);
 
 	useEffect(() => {
 		// Electron shell detection (merged chrome, 2026-09-17): keys the
@@ -148,6 +169,16 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const toggle = useCallback(() => {
+		// Below md the sidebar is an overlay drawer — no window to widen,
+		// no persisted preference to flip.
+		if (isMobile) {
+			if (!drawer) {
+				const active = document.activeElement;
+				drawerTriggerRef.current = active instanceof HTMLElement ? active : null;
+			}
+			setDrawer((v) => !v);
+			return;
+		}
 		// Opening while narrow (auto-closed, or the user's own closed-at-
 		// narrow): ask the shell to widen to the threshold — the resize
 		// listener flips `narrow` and the sidebar appears. The preference
@@ -163,7 +194,51 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 			localStorage.setItem(STORAGE_KEY, v ? "0" : "1");
 			return !v;
 		});
-	}, [narrow, open]);
+	}, [isMobile, drawer, narrow, open]);
+
+	// What held focus when the drawer opened — handed back when it closes,
+	// so a keyboard user never lands on <body> behind a closed drawer.
+	const drawerTriggerRef = useRef<HTMLElement | null>(null);
+	// Captured BEFORE the state flip: `inert` blurs the focused element, so
+	// reading activeElement after the commit is browser-dependent.
+	const drawerHadFocusRef = useRef(false);
+	const rememberDrawerFocus = useCallback(() => {
+		const active = document.activeElement;
+		drawerHadFocusRef.current = active instanceof HTMLElement && !!active.closest("aside");
+	}, []);
+
+	const close = useCallback(() => {
+		if (isMobile) {
+			rememberDrawerFocus();
+			setDrawer(false);
+		} else setOpen(false);
+	}, [isMobile, rememberDrawerFocus]);
+
+	// A desktop-sized window never keeps the drawer mounted.
+	useEffect(() => {
+		if (!isMobile) setDrawer(false);
+	}, [isMobile]);
+
+	// Drawer contract: Esc closes it and claims the key (the window Esc
+	// chain must not also abort a turn under an open drawer); the page
+	// behind it does not scroll.
+	useEffect(() => {
+		if (!drawer) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key !== "Escape") return;
+			e.preventDefault();
+			e.stopPropagation();
+			rememberDrawerFocus();
+			setDrawer(false);
+		};
+		document.addEventListener("keydown", onKey, true);
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		return () => {
+			document.removeEventListener("keydown", onKey, true);
+			document.body.style.overflow = prev;
+		};
+	}, [drawer, rememberDrawerFocus]);
 
 	// ⌘B: the global shortcut dispatches kbdEventForAction("toggle-sidebar")
 	// and the context answers on exactly that name — the shared spelling
@@ -178,8 +253,19 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 		return () => window.removeEventListener(event, onToggle);
 	}, [toggle]);
 
+	// Closing (any path: button, backdrop, Esc, route change) returns focus
+	// to the trigger if it was inside the drawer. `inert` in the markup keeps
+	// the closed drawer out of the tab order; this keeps the keyboard walk
+	// from dropping to <body>.
+	useEffect(() => {
+		if (drawer || !drawerHadFocusRef.current) return;
+		drawerHadFocusRef.current = false;
+		const trigger = drawerTriggerRef.current;
+		if (trigger?.isConnected) trigger.focus();
+	}, [drawer]);
+
 	return (
-		<SidebarContext.Provider value={{ open: open && !narrow, toggle }}>
+		<SidebarContext.Provider value={{ open: isMobile ? drawer : open && !narrow, toggle, close, isMobile }}>
 			{/* transitions gated on mount: no slide-in flash on page load */}
 			<div className={cn("flex h-dvh", mounted && "[&_.sidebar-motion]:transition-[width,margin,opacity]")}>{children}</div>
 		</SidebarContext.Provider>
@@ -199,31 +285,56 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
  *  The icon fades with the slot and is clipped by it as it collapses —
  *  no popping in either direction. */
 export function SidebarToggle() {
-	const { open, toggle } = useSidebar();
+	const { open, toggle, isMobile } = useSidebar();
+	const label = isMobile ? "Open menu" : "Open sidebar";
 	return (
 		<span
 			className={cn(
-				"sidebar-motion lh-no-drag relative flex h-9 shrink-0 overflow-hidden duration-200",
-				open ? "w-0 -mr-3" : "w-9 mr-0 lh-closed-toggle",
+				// The menu is the primary nav control on a phone: 44px there,
+				// the original 36px slot above md (aligned with the wordmark band).
+				"sidebar-motion lh-no-drag relative flex h-9 shrink-0 overflow-hidden duration-200 max-md:h-11",
+				open ? "w-0 -mr-3" : "w-9 max-md:w-11 mr-0 lh-closed-toggle",
 			)}
 		>
-			<Hint label="Open sidebar" action="toggle-sidebar">
+			<Hint label={label} action="toggle-sidebar">
 			<Button
 				variant="ghost"
 				size="icon"
-				aria-label="Open sidebar"
+				aria-label={label}
 				aria-hidden={open}
 				tabIndex={open ? -1 : 0}
 				onClick={toggle}
-				className={cn("sidebar-motion duration-200", open ? "pointer-events-none opacity-0" : "opacity-100")}
+				className={cn("sidebar-motion duration-200 max-md:size-11", open ? "pointer-events-none opacity-0" : "opacity-100")}
 			>
 				{/* Owner, round 6: size-4, SAME as the close glyph — the toggle
 				    must not grow when the sidebar is closed (it did: size-5 here).
 				    The small look is the standard, both directions. */}
-				<PanelLeftOpenIcon className="size-4" />
+				{isMobile ? <MenuIcon className="size-5" /> : <PanelLeftOpenIcon className="size-4" />}
 			</Button>
 			</Hint>
 		</span>
+	);
+}
+
+/**
+ * The compact header for the chrome-less surfaces (home, /chat/new) below
+ * md: 52px + the notch inset, menu button, optional context title, and a
+ * short actions slot. Floating over the canvas exactly like the desktop
+ * header it replaces (pointer-events-none except its controls).
+ */
+export function MobileHeader({ title, actions }: { title?: string; actions?: React.ReactNode }) {
+	return (
+		<header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex min-h-13 items-center gap-1.5 bg-gradient-to-b from-background/90 to-transparent px-2 pb-1 pt-[env(safe-area-inset-top)] md:hidden">
+			<div className="pointer-events-auto">
+				<SidebarToggle />
+			</div>
+			{title && (
+				<span className="min-w-0 flex-1 truncate px-1 text-xs uppercase tracking-widest text-muted-foreground">
+					{title}
+				</span>
+			)}
+			{actions && <div className="pointer-events-auto flex items-center gap-1">{actions}</div>}
+		</header>
 	);
 }
 
@@ -308,7 +419,7 @@ export function SessionRow({
 			onContextMenu={onContextMenu}
 			data-testid={kbdSelected ? "session-row-kbd" : "session-row"}
 			className={cn(
-				"relative mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent",
+				"relative mb-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent max-md:min-h-11 max-md:py-2.5",
 				active && "bg-accent",
 				kbdSelected && !active && "bg-accent/60 ring-1 ring-border",
 			)}
@@ -390,7 +501,7 @@ export type SessionKindFilter = "teach" | "all" | "practice";
 const KIND_FILTER_KEY = "lh:session-kind-filter";
 
 function SessionsSidebar() {
-	const { open, toggle } = useSidebar();
+	const { open, toggle, close, isMobile } = useSidebar();
 	const [chats, setChats] = useState<ChatListItem[] | null>(null);
 	const [query, setQuery] = useState("");
 	const [kindFilter, setKindFilter] = useState<SessionKindFilter>("all");
@@ -645,17 +756,52 @@ function SessionsSidebar() {
 		// freshness (S6) — no interval, nothing standing.
 	}, [open, pathname, refresh]);
 
+	// A drawer belongs to the page that opened it: any navigation closes it.
+	// The ref makes "navigation" the only trigger — mounting, or the
+	// desktop/mobile flip, must never read as one (a close() on the desktop
+	// path would shut the inline column on load).
+	const lastPathRef = useRef(pathname);
+	useEffect(() => {
+		if (lastPathRef.current === pathname) return;
+		lastPathRef.current = pathname;
+		if (isMobile) close();
+	}, [pathname, isMobile, close]);
+
 	return (
-		<aside
-			className={cn("sidebar-motion shrink-0 overflow-hidden duration-200", open ? "w-72" : "w-0")}
-			aria-hidden={!open}
-		>
-			<div className="flex h-full w-72 flex-col border-r bg-background">
-				{/* LH wordmark — the owner's header; close toggle sits at the edge.
+		<>
+			{/* The dimmed backdrop (drawer only — desktop's inline column never
+			    has one). A click closes; the page behind is already scroll-locked
+			    by the provider. */}
+			{open && (
+				<div
+					className="fixed inset-0 z-40 bg-background/70 backdrop-blur-sm md:hidden"
+					onClick={close}
+					aria-hidden="true"
+					data-testid="sidebar-backdrop"
+				/>
+			)}
+			<aside
+				className={cn(
+					"sidebar-motion shrink-0 border-r bg-background duration-200",
+					// below md: an overlay drawer, off-canvas when closed
+					"fixed inset-y-0 left-0 z-50 w-[85vw] max-w-72 overflow-hidden transition-[transform,width]",
+					open ? "translate-x-0" : "-translate-x-full",
+					// md and up: the inline column (unchanged pixels)
+					"md:static md:z-auto md:translate-x-0 md:border-r-0 md:bg-transparent md:transition-[width,margin,opacity]",
+					open ? "md:w-72" : "md:w-0",
+				)}
+				aria-hidden={!open}
+				// Out of the tab order while closed (a translated-off-canvas or
+				// zero-width column must never take focus). Opens the moment the
+				// drawer/column does.
+				inert={!open}
+			>
+				<div className="flex h-full w-full flex-col border-r bg-background pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] md:w-72 md:pb-0 md:pt-0">
+					{/* LH wordmark — the owner's header; close toggle sits at the edge.
 				    Merged chrome (2026-09-17): in Electron this band is the
 				    window's drag surface and starts after the traffic lights
 				    (.lh-lights-gutter); in the browser those classes are inert. */}
-				<div className="lh-drag lh-lights-gutter flex items-center justify-between px-4 py-3">
+					<div className="lh-drag lh-lights-gutter flex items-center justify-between px-4 py-3">
 					{/* The owner's mark (2026-09-17) replaces the "LH" text — still the
 					    home link, still vertically centered by the band's items-center.
 					    The 92px .lh-lights-gutter keeps it clear of the traffic lights
@@ -674,7 +820,7 @@ function SessionsSidebar() {
 						<Link
 							href="/"
 							aria-label="Home"
-							className="lh-no-drag flex size-9 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50"
+							className="lh-no-drag flex size-9 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 max-md:size-11"
 						>
 							<LhMark className="size-6" />
 						</Link>
@@ -685,7 +831,7 @@ function SessionsSidebar() {
 							size="icon"
 							aria-label="Close sidebar"
 							onClick={toggle}
-							className="lh-no-drag"
+							className="lh-no-drag max-md:size-11"
 						>
 							<PanelLeftCloseIcon className="size-4" />
 						</Button>
@@ -701,7 +847,7 @@ function SessionsSidebar() {
 						type="button"
 						data-testid="new-session"
 						onClick={() => void newSession()}
-						className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						className="flex min-h-11 w-full items-center gap-1.5 rounded-md px-2 py-2 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:min-h-0 md:py-1.5"
 					>
 						<PlusIcon className="size-3" />
 						Teaching
@@ -711,7 +857,7 @@ function SessionsSidebar() {
 						type="button"
 						data-testid="new-session-practice"
 						onClick={() => router.push("/chat/new?mode=practice")}
-						className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						className="flex min-h-11 w-full items-center gap-1.5 rounded-md px-2 py-2 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:min-h-0 md:py-1.5"
 					>
 						<DumbbellIcon className="size-3" />
 						Practice
@@ -773,7 +919,7 @@ function SessionsSidebar() {
 							}}
 							placeholder="Search…"
 							aria-label="Search sessions"
-							className="h-6 rounded-sm border-border bg-background pl-6 text-xs placeholder:text-muted-foreground/60"
+							className="h-6 rounded-sm border-border bg-background pl-6 text-xs placeholder:text-muted-foreground/60 max-md:h-9 max-md:text-sm"
 						/>
 						<SearchIcon className="pointer-events-none absolute left-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground/70" />
 					</span>
@@ -795,7 +941,7 @@ function SessionsSidebar() {
 							data-testid={`kind-filter-${f}`}
 							onClick={() => setFilter(f)}
 							className={cn(
-								"flex-1 rounded-sm px-2 py-1 text-[11px] uppercase tracking-wider transition-colors",
+								"flex-1 rounded-sm px-2 py-1 text-[11px] uppercase tracking-wider transition-colors max-md:min-h-10 max-md:py-2",
 								kindFilter === f
 									? "bg-accent text-foreground"
 									: "text-muted-foreground hover:text-foreground",
@@ -855,7 +1001,7 @@ function SessionsSidebar() {
 								type="button"
 								onClick={() => openSettings()}
 								data-testid="settings-entry"
-								className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								className="flex min-h-11 items-center gap-1.5 rounded-md px-2 py-2 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:min-h-0 md:py-1.5"
 							>
 								<SettingsIcon className="size-3" />
 								Settings
@@ -939,6 +1085,7 @@ function SessionsSidebar() {
 					onDeleted={onDeleted}
 				/>
 			</aside>
+		</>
 	);
 }
 

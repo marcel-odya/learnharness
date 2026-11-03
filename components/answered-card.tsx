@@ -206,7 +206,9 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 					<button
 						type="button"
 						onClick={() => setWhyOpen((v) => !v)}
-						className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+						// lh-tap-inline: a 40×40 thumb target whose margins give the
+						// space back, so the answered card keeps its exact height.
+						className="lh-tap-inline text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
 					>
 						{whyOpen ? "Hide why" : "Why"}
 					</button>
